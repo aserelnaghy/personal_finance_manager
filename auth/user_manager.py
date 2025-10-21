@@ -1,4 +1,4 @@
-import os
+import os, json
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import hashlib
@@ -71,7 +71,7 @@ def get_current_user() -> dict | None:
 
     try:
         with open(CURRENT_USER_FILE, "r", encoding="utf-8") as f:
-            return load_json(f)
+            return json.load(f)
     except Exception:
         return None
 
