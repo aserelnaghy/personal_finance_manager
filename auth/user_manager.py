@@ -51,19 +51,6 @@ def verify_user(name: str, pin: str) -> Dict[str, Any]:
 
 
 
-def switch_user(user_id: str) -> dict:
-    """Switches the active user profile."""
-    users = load_json(USERS_FILE)
-    user = next((u for u in users if u["user_id"] == user_id), None)
-
-    if not user:
-        raise UserNotFoundError("User ID not found.")
-
-    save_json({"user_id": user["user_id"], "name": user["name"]}, CURRENT_USER_FILE)
-    return {"user_id": user["user_id"], "name": user["name"]}
-
-
-
 def get_current_user() -> dict | None:
     """Returns the active user if logged in, else None."""
     if not os.path.exists(CURRENT_USER_FILE):
@@ -77,7 +64,12 @@ def get_current_user() -> dict | None:
 
 
 
-def logout_user():
-    """Clears the current user session."""
-    if os.path.exists(CURRENT_USER_FILE):
-        os.remove(CURRENT_USER_FILE)
+
+def login_user(name: str, pin: str) -> dict:
+    """Authenticate and log in a user."""
+    return verify_user(name, pin)  # Your existing verify_user already does this
+
+def logout_user() -> None:
+    """Clear current session."""
+    if CURRENT_USER_FILE.exists():
+        CURRENT_USER_FILE.unlink()  # Remove the current user file to log out
