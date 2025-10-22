@@ -17,3 +17,7 @@ class AuthenticationError(Exception):
 class InvalidDateError(Exception):
     """Raised when a date is in an incorrect format or out of range."""
     pass
+
+class UserAlreadyExistsError(Exception):
+    """Raised when attempting to create a user that already exists."""
+    pass
