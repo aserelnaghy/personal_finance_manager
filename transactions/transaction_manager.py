@@ -5,7 +5,7 @@ from utils.date_utils import get_today_str
 from persistence.load_save_json import load_json, save_json
 from auth.user_manager import get_current_user
 from utils.errors import InvalidTransactionError, UserNotFoundError
-from config import TRANSACTION_FILE
+from config import *
 
 
 def add_transaction(transaction_type, amount, category, description, payment_method):
@@ -15,10 +15,10 @@ def add_transaction(transaction_type, amount, category, description, payment_met
     if not user:
         raise UserNotFoundError("No active user found. Please log in first.")
 
-    transaction = load_json(TRANSACTION_FILE)
+    transaction = load_json(TRANSACTIONS_FILE)
 
     new_transaction = {
-        "transation_id": generate_transaction_id(),
+        "transaction_id": generate_transaction_id(),
         "user_id": user["user_id"],
         "type": transaction_type.lower(),
         "amount": float(amount),
@@ -29,17 +29,27 @@ def add_transaction(transaction_type, amount, category, description, payment_met
     }
 
     transaction.append(new_transaction)
-    save_json(transaction, TRANSACTION_FILE)
+    save_json(transaction, TRANSACTIONS_FILE)
 
     print(f"Transaction added successfully: {new_transaction['transaction_id']}")
     return new_transaction
 
 
-def view_transacation (user_only=True):
+def view_transaction(user_only=True):
     """View transactions (default for the current user only)"""
     
     user = get_current_user()
-    transactions = load_json(TRANSACTION_FILE)
+        # Handle case where not logged in
+    if not user:
+        raise UserNotFoundError("No active user found. Please log in first.")
+
+    transactions = load_json(TRANSACTIONS_FILE)
+
+    # Handle case where transactions file doesn't exist or is empty
+    if not transactions:
+        print("No transactions found in the system.")
+        return []
+    transactions = load_json(TRANSACTIONS_FILE)
 
     if user_only:
         user_txns = [t for t in transactions if t["user_id"] == user["user_id"]]
@@ -51,7 +61,7 @@ def view_transacation (user_only=True):
         return []
     
     for txn in user_txns:
-        print(f"[ {txn['transaction_id']} | {txn['date']} | {txn['type'].capitalize()} | {txn['category']} | {txn['amount']} ]")
+        print(f"[ {txn['transaction_id'][:10]} | {txn['date']} | {txn['type'].capitalize()} | {txn['category']} | {txn['amount']} EGP ]")
     return user_txns
 
 
@@ -59,7 +69,7 @@ def view_transacation (user_only=True):
 def edit_transaction(transaction_id, **updates):
     """Edit a transaction by ID (for the current user)."""
     user = get_current_user()
-    transactions = load_json(TRANSACTION_FILE)
+    transactions = load_json(TRANSACTIONS_FILE)
     updated = False
 
     for txn in transactions:
@@ -71,14 +81,14 @@ def edit_transaction(transaction_id, **updates):
     if not updated:
         raise InvalidTransactionError("Transaction not found or access denied.")
 
-    save_json(TRANSACTION_FILE, transactions)
+    save_json(transactions, TRANSACTIONS_FILE)
     print(f"Transaction {transaction_id} updated successfully.")
 
 
 def delete_transaction(transaction_id, confirm=True):
     """Delete a transaction by ID, with optional confirmation."""
     user = get_current_user()
-    transactions = load_json(TRANSACTION_FILE)
+    transactions = load_json(TRANSACTIONS_FILE)
     remaining = [t for t in transactions if not (t["transaction_id"] == transaction_id and t["user_id"] == user["user_id"])]
 
     if len(remaining) == len(transactions):
@@ -90,5 +100,5 @@ def delete_transaction(transaction_id, confirm=True):
             print("Deletion cancelled.")
             return
 
-    save_json(TRANSACTION_FILE, remaining)
+    save_json(remaining, TRANSACTIONS_FILE)
     print(f"Transaction {transaction_id} deleted successfully.")
