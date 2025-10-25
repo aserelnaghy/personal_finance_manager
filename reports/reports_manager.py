@@ -1,6 +1,8 @@
 
 from collections import defaultdict
-import datetime 
+from persistence.load_save_json import load_json
+from config import TRANSACTIONS_FILE
+from datetime import datetime 
 
 def generate_dashboard_summary(transactions):
     total_income = sum(t["amount"] for t in transactions if t["type"] == "income")
@@ -57,3 +59,16 @@ def generate_spending_trends(transactions):
             "percent_change": round(percent_change, 2)
         })
     return trends
+
+# transactions = load_json(TRANSACTIONS_FILE)
+# summary = generate_dashboard_summary(transactions)
+# print("Dashboard Summary:", summary)
+
+# print("\nMonthly Report:")
+# print(generate_monthly_report(transactions))
+
+# print("\nCategory Breakdown:")
+# print(generate_category_breakdown(transactions))
+
+# print("\nSpending Trends:")
+# print(generate_spending_trends(transactions))
