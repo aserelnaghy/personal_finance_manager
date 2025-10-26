@@ -88,3 +88,22 @@ def reports_menu():
             print("Invalid choice.")
         pause()
 
+# ========== Help Menu ==========
+
+def help_menu():
+    print_header("HELP & INSTRUCTIONS")
+    print("""
+Welcome to the Personal Finance Manager!
+
+This application helps you manage your finances in four key areas:
+1. User Management — Create, login, and switch between users.
+2. Transactions — Add, view, edit, delete, and search transactions.
+3. Reports — View summaries and trends of your spending.
+4. Advanced Features — Manage budgets, goals, and recurring entries.
+
+Tips:
+* Always login before performing transactions.
+* Data is stored in JSON files under the 'data/' folder.
+* Use Ctrl+C to safely exit the application anytime.
+""")
+    pause() 
