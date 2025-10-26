@@ -1,8 +1,8 @@
-from goals import check_goals_progress
+from features.goals import check_goals_progress
 
 def calculate_financial_health(user_id, transactions, goals):
     """
-    Calculate a financial health score (0–100) for a user
+    Calculate a financial health score (0-100) for a user
     based on income/expense ratio and goal progress.
 
     Args:
@@ -33,36 +33,49 @@ def calculate_financial_health(user_id, transactions, goals):
     # --- 3- Get average goal completion ---
     goals_progress = check_goals_progress(user_id, transactions, goals)
     avg_goal_completion = (
-        sum(p for _, p in goals_progress) / len(goals_progress)
-        if goals_progress else 0
+    sum(g["progress_percent"] for g in goals_progress) / len(goals_progress)
+    if goals_progress else 0
     ) / 100  # convert to 0–1 scale
+
 
     # --- 4- Weighted score ---
     # 60% from savings, 40% from goal achievement
     score = (savings_ratio * 60) + (avg_goal_completion * 40)
 
-    return round(score, 2)
+    # --- 5- Determine financial health status ---
+    if score >= 80:
+        status = "Excellent"
+    elif score >= 60:
+        status = "Good"
+    elif score >= 40:
+        status = "Moderate"
+    elif score >= 20:
+        status = "Weak"
+    else:
+        status = "Critical"
+
+    return round(score, 2), status
 
 
-if __name__ == "__main__":
-    # Sample transactions
-    transactions = [
-        {"user_id": "user_1", "type": "income", "amount": 8000},
-        {"user_id": "user_1", "type": "expense", "amount": 3000},
-        {"user_id": "user_1", "type": "expense", "amount": 1000},
-    ]
+# if __name__ == "__main__":
+#     # Sample transactions
+#     transactions = [
+#         {"user_id": "user_1", "type": "income", "amount": 8000},
+#         {"user_id": "user_1", "type": "expense", "amount": 3000},
+#         {"user_id": "user_1", "type": "expense", "amount": 1000},
+#     ]
 
-    # Sample goals
-    goals = {
-        "user_1": {"Buy Laptop": 10000, "Vacation": 4000}
-    }
+#     # Sample goals
+#     goals = {
+#         "user_1": {"Buy Laptop": 10000, "Vacation": 4000}
+#     }
 
-    # Test check_goals_progress
-    print("=== Test Goals Progress ===")
-    progress = check_goals_progress("user_1", transactions, goals)
-    for goal, pct in progress:
-        print(f"{goal}: {pct}%")
+#     # Test check_goals_progress
+#     print("=== Test Goals Progress ===")
+#     progress = check_goals_progress("user_1", transactions, goals)
+#     for p in progress:
+#         print(f"{p['goal_name']}: {p['progress_percent']}% ({p['status']})")
 
-    # Test financial health score
-    score = calculate_financial_health("user_1", transactions, goals)
-    print(f"\nFinancial Health Score for user_1: {score}")
+#     # Test financial health score
+#     score = calculate_financial_health("user_1", transactions, goals)
+#     print(f"\nFinancial Health Score for user_1: {score}")
