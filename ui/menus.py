@@ -54,3 +54,37 @@ def transactions_menu():
             print("Invalid option.")
         pause()
 
+
+# ========== Reports Menu ==========
+
+def reports_menu():
+    user = get_current_user()
+    if not user:
+        print("Please log in first.")
+        return
+
+    transactions = load_json(TRANSACTION_FILE)
+
+    while True:
+        print_header("REPORTS")
+        print("1. Dashboard Summary")
+        print("2. Monthly Report")
+        print("3. Category Breakdown")
+        print("4. Spending Trends")
+        print("5. Back to Main Menu")
+        choice = input("Choose an option: ").strip()
+
+        if choice == "1":
+            prompt_dashboard_summary()
+        elif choice == "2":
+            prompt_monthly_report()
+        elif choice == "3":
+            prompt_category_breakdown()
+        elif choice == "4":
+            prompt_spending_trends()
+        elif choice == "5":
+            break
+        else:
+            print("Invalid choice.")
+        pause()
+
