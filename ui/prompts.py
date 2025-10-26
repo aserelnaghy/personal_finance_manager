@@ -12,14 +12,20 @@ from features.financial_health import calculate_financial_health
 from features.recurring_processor import process_recurring_transactions
 from ui.input_validators import *
 from utils.date_utils import get_today_str, parse_date
-from config import TRANSACTION_FILE, BUDGET_FILE, GOALS_FILE, RECURRING_FILE
+from config import TRANSACTIONS_FILE, BUDGET_FILE, GOALS_FILE, RECURRING_FILE
+from getpass import getpass
 
 def prompt_register() -> bool:
     """Prompt user for registration details."""
     print("\n=== User Registration ===")
     
     username = input("Enter username: ").strip()
-    pin = input("Enter a 4-digit PIN: ").strip()
+    pin = getpass("Enter PIN: ").strip()
+    confirm_pin = getpass("Confirm PIN: ").strip()
+
+    if pin != confirm_pin:
+        print("Error: PINs do not match.")
+        return False
     
     try:
         user = create_user(username, pin)
@@ -34,7 +40,7 @@ def prompt_login() -> bool:
     print("\n=== Login ===")
     
     username = input("Username: ").strip()
-    pin = input("PIN: ").strip()
+    pin = getpass("PIN: ").strip()
     
     try:
         user = login_user(username, pin)
@@ -124,10 +130,31 @@ def prompt_edit_transactions() -> Optional[dict]:
     print("\n=== Edit Transaction ===")
 
     try:
-        # Ask for transaction ID
-        transaction_id = input("Enter the Transaction ID to edit: ").strip()
+        user = get_current_user()
+        transactions = load_json(TRANSACTIONS_FILE)
+
+        # Filter transactions for the current user
+        user_transactions = [t for t in transactions if t.get("user_id") == user["user_id"]]
+
+        # --- Validation: Check if there are any transactions to edit ---
+        if not user_transactions:
+            print("No transactions found. You must add one before editing.")
+            return None
+
+        # Optional: show existing transactions for context
+        print("\nYour existing transactions:")
+        for txn in user_transactions:
+            print(f"  ID: {txn['transaction_id']} | {txn['type']} | {txn['category']} | {txn['amount']}")
+
+        # --- Proceed with editing ---
+        transaction_id = input("\nEnter the Transaction ID to edit: ").strip()
         if not transaction_id:
             print("Transaction ID cannot be empty.")
+            return None
+
+        # Validate that the transaction exists for this user
+        if not any(txn["transaction_id"] == transaction_id for txn in user_transactions):
+            print("Transaction ID not found or does not belong to you.")
             return None
 
         print("Leave a field blank if you do NOT want to change it.\n")
@@ -183,10 +210,31 @@ def prompt_delete_transactions() -> Optional[str]:
     print("\n=== Delete Transaction ===")
 
     try:
-        # Ask for transaction ID
-        transaction_id = input("Enter the Transaction ID to delete: ").strip()
+        user = get_current_user()
+        transactions = load_json(TRANSACTIONS_FILE)
+
+        # Filter transactions for the current user
+        user_transactions = [t for t in transactions if t.get("user_id") == user["user_id"]]
+
+        # --- Validation: Check if there are any transactions to delete ---
+        if not user_transactions:
+            print("No transactions found. You must add one before attempting deletion.")
+            return None
+
+        # Optional: show user’s transactions for context
+        print("\nYour existing transactions:")
+        for txn in user_transactions:
+            print(f"  ID: {txn['transaction_id']} | {txn['type']} | {txn['category']} | {txn['amount']}")
+
+        # --- Ask for transaction ID ---
+        transaction_id = input("\nEnter the Transaction ID to delete: ").strip()
         if not transaction_id:
             print("Transaction ID cannot be empty.")
+            return None
+
+        # Validate that the transaction exists for this user
+        if not any(txn["transaction_id"] == transaction_id for txn in user_transactions):
+            print("Transaction ID not found or does not belong to you.")
             return None
 
         # Ask for confirmation
@@ -210,15 +258,6 @@ def prompt_delete_transactions() -> Optional[str]:
 
 def prompt_search_transactions():
     """CLI interface for searching and filtering transactions with user-friendly prompts."""
-    print("\nTransaction Search Filters")
-    print("-" * 35)
-    print("You can filter your transactions by one or more of the following:")
-    print("1. Date Range (Start and End)")
-    print("2. Category")
-    print("3. Type (income or expense)")
-    print("4. Amount Range (Min and Max)")
-    print("5. Sort Results")
-    print("6. No Filter (show all transactions)\n")
 
     try:
         user = get_current_user()
@@ -227,6 +266,26 @@ def prompt_search_transactions():
             return
 
         user_id = user["user_id"]
+        transactions = load_json(TRANSACTIONS_FILE)
+
+        # Filter transactions for the current user
+        user_transactions = [t for t in transactions if t.get("user_id") == user_id]
+
+        # --- Validation: No transactions at all ---
+        if not user_transactions:
+            print("No transactions found. You must add one before using the search filters.")
+            return
+
+
+        print("\nTransaction Search Filters")
+        print("-" * 35)
+        print("You can filter your transactions by one or more of the following:")
+        print("1. Date Range (Start and End)")
+        print("2. Category")
+        print("3. Type (income or expense)")
+        print("4. Amount Range (Min and Max)")
+        print("5. Sort Results")
+        print("6. No Filter (show all transactions)\n")
 
         # Initialize all filters to None
         start_date = end_date = category = txn_type = sort_by = None
@@ -496,7 +555,7 @@ def prompt_set_budget(user_id):
         print("Invalid limit. Please enter a number.")
 
 def prompt_check_budget(user_id):
-    transactions = load_json(TRANSACTION_FILE)
+    transactions = load_json(TRANSACTIONS_FILE)
     budgets = load_json(BUDGET_FILE)
 
     print("\nBudget Status")
@@ -516,7 +575,7 @@ def prompt_set_goal(user_id):
         print("Invalid amount. Please enter a number.")
 
 def prompt_view_goals(user_id):
-    transactions = load_json(TRANSACTION_FILE)
+    transactions = load_json(TRANSACTIONS_FILE)
     goals = load_json(GOALS_FILE)
 
     print("\nGoals Progress")
@@ -534,25 +593,21 @@ def prompt_view_goals(user_id):
         )
 
 def prompt_process_recurring(user_id):
-    recurring = load_json(RECURRING_FILE)
-    transactions = load_json(TRANSACTION_FILE)
+    
+    transactions = load_json(TRANSACTIONS_FILE)
 
     print("\nProcess Recurring Transactions")
     print("-" * 40)
-    recurring.setdefault(user_id, [])
 
-    updated_txns = process_recurring_transactions(user_id, recurring[user_id], transactions)
-    save_json(updated_txns, TRANSACTION_FILE)
-    save_json(recurring, RECURRING_FILE)
-
-    print(f"Recurring transactions updated for user {user_id}.")
+    updated_txns = process_recurring_transactions(user_id, transactions)
+    save_json(updated_txns, TRANSACTIONS_FILE)
 
 def prompt_calculate_health(user_id):
-    transactions = load_json(TRANSACTION_FILE)
+    transactions = load_json(TRANSACTIONS_FILE)
     goals = load_json(GOALS_FILE)
 
     print("\nFinancial Health Score")
     print("-" * 40)
 
-    score, status = calculate_financial_health(user_id, transactions, goals, with_status=True)
+    score, status = calculate_financial_health(user_id, transactions, goals)
     print(f"Your Financial Health Score: {score} ({status})")

@@ -1,7 +1,7 @@
 import sys
 from auth.user_manager import get_current_user
 from ui.prompts import prompt_login, prompt_register, prompt_logout
-from ui.menus import transactions_menu, reports_menu, help_menu, pause
+from ui.menus import transactions_menu, reports_menu, help_menu,advanced_features_menu, pause
 
 
 
@@ -41,8 +41,8 @@ def main_menu():
                 transactions_menu()
             elif choice == "2":
                 reports_menu()
-            # elif choice == "3":
-            #     advanced_features_menu()
+            elif choice == "3":
+                advanced_features_menu()
             elif choice == "4":
                 help_menu()
             elif choice == "5":

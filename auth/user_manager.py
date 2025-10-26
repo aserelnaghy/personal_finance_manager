@@ -71,5 +71,5 @@ def login_user(name: str, pin: str) -> dict:
 
 def logout_user() -> None:
     """Clear current session."""
-    if CURRENT_USER_FILE.exists():
-        CURRENT_USER_FILE.unlink()  # Remove the current user file to log out
+    if os.path.exists(CURRENT_USER_FILE):
+        os.remove(CURRENT_USER_FILE)

@@ -79,8 +79,8 @@ def process_recurring_transactions(user_id, transactions):
         return transactions
 
     except PermissionError:
-        print("❌ Permission denied while accessing recurring.json.")
+        print("Permission denied while accessing recurring.json.")
         return transactions
     except Exception as e:
-        print(f"❌ Unexpected error while processing recurring transactions: {e}")
+        print(f"Unexpected error while processing recurring transactions: {e}")
         return transactions

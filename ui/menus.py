@@ -1,12 +1,6 @@
 from auth.user_manager import get_current_user
 from ui.prompts import *
-from config import TRANSACTION_FILE, BUDGET_FILE, GOALS_FILE, RECURRING_FILE
-
-# from features.budget_manager import check_budget_limits
-# from features.goal_tracker import check_goals_progress
-# from features.recurring_processor import process_recurring_transactions
-# from features.financial_health import calculate_financial_health
-
+from config import TRANSACTIONS_FILE, BUDGET_FILE, GOALS_FILE, RECURRING_FILE
 from persistence.load_save_json import load_json, save_json
 import os
 
@@ -64,7 +58,7 @@ def reports_menu():
         print("Please log in first.")
         return
 
-    transactions = load_json(TRANSACTION_FILE)
+    transactions = load_json(TRANSACTIONS_FILE)
 
     while True:
         print_header("REPORTS")
@@ -107,7 +101,6 @@ Tips:
 * Data is stored in JSON files under the 'data/' folder.
 * Use Ctrl+C to safely exit the application anytime.
 """)
-    pause() 
 
 # ========== Advanced Features Menu ==========
 
@@ -121,7 +114,7 @@ def advanced_features_menu():
     user_id = user["user_id"]
 
     # Ensure all data files exist
-    for file in [TRANSACTION_FILE, BUDGET_FILE, GOALS_FILE, RECURRING_FILE]:
+    for file in [TRANSACTIONS_FILE, BUDGET_FILE, GOALS_FILE, RECURRING_FILE]:
         if not os.path.exists(file):
             print(f"{file} missing — creating a new one.")
             save_json({}, file if "transactions" not in file else [])
