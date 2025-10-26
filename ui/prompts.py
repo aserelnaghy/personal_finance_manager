@@ -4,13 +4,15 @@ from transactions.transaction_manager import add_transaction, view_transaction, 
 from reports.reports_manager import (
     generate_dashboard_summary, generate_monthly_report,
     generate_category_breakdown, generate_spending_trends)
-from persistence.load_save_json import load_json
+from persistence.load_save_json import load_json, save_json
 from config import TRANSACTIONS_FILE
-# from features.budgets import set_budget, get_budget, check_budget_alerts
-# from features.goals import set_savings_goal, get_goal_progress, update_goal_progress
-# from features.financial_health import calculate_financial_health_score
+from features.budgets import set_budget_limit, check_budget_limits
+from features.goals import set_goal, check_goals_progress
+from features.financial_health import calculate_financial_health
+from features.recurring_processor import process_recurring_transactions
 from ui.input_validators import *
 from utils.date_utils import get_today_str, parse_date
+from config import TRANSACTION_FILE, BUDGET_FILE, GOALS_FILE, RECURRING_FILE
 
 def prompt_register() -> bool:
     """Prompt user for registration details."""
@@ -483,3 +485,74 @@ def prompt_spending_trends():
 
     except Exception as e:
         print(f"Unexpected error: {e}")
+
+def prompt_set_budget(user_id):
+    """Prompt user for budget info and call the logic layer."""
+    category = input("Enter category name: ").strip()
+    try:
+        limit = float(input("Enter budget limit: "))
+        set_budget_limit(user_id, category, limit)
+    except ValueError:
+        print("Invalid limit. Please enter a number.")
+
+def prompt_check_budget(user_id):
+    transactions = load_json(TRANSACTION_FILE)
+    budgets = load_json(BUDGET_FILE)
+
+    print("\nBudget Status")
+    print("-" * 40)
+    alerts = check_budget_limits(user_id, transactions, budgets, verbose=True)
+
+    if not alerts:
+        print("All budgets are within limits.")
+
+def prompt_set_goal(user_id):
+    """Prompt user for goal info and call the logic layer."""
+    name = input("Enter goal name: ").strip()
+    try:
+        amount = float(input("Enter target amount: "))
+        set_goal(user_id, name, amount)
+    except ValueError:
+        print("Invalid amount. Please enter a number.")
+
+def prompt_view_goals(user_id):
+    transactions = load_json(TRANSACTION_FILE)
+    goals = load_json(GOALS_FILE)
+
+    print("\nGoals Progress")
+    print("-" * 40)
+    progress = check_goals_progress(user_id, transactions, goals)
+
+    if not progress:
+        print("No goals found.")
+        return
+
+    for g in progress:
+        print(
+            f"- {g['goal_name']}: {g['progress_percent']}% ({g['status']}) | "
+            f"Target: {g['target_amount']} | Remaining: {g['remaining']:.2f}"
+        )
+
+def prompt_process_recurring(user_id):
+    recurring = load_json(RECURRING_FILE)
+    transactions = load_json(TRANSACTION_FILE)
+
+    print("\nProcess Recurring Transactions")
+    print("-" * 40)
+    recurring.setdefault(user_id, [])
+
+    updated_txns = process_recurring_transactions(user_id, recurring[user_id], transactions)
+    save_json(updated_txns, TRANSACTION_FILE)
+    save_json(recurring, RECURRING_FILE)
+
+    print(f"Recurring transactions updated for user {user_id}.")
+
+def prompt_calculate_health(user_id):
+    transactions = load_json(TRANSACTION_FILE)
+    goals = load_json(GOALS_FILE)
+
+    print("\nFinancial Health Score")
+    print("-" * 40)
+
+    score, status = calculate_financial_health(user_id, transactions, goals, with_status=True)
+    print(f"Your Financial Health Score: {score} ({status})")

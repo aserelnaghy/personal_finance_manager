@@ -7,7 +7,8 @@ from config import TRANSACTION_FILE, BUDGET_FILE, GOALS_FILE, RECURRING_FILE
 # from features.recurring_processor import process_recurring_transactions
 # from features.financial_health import calculate_financial_health
 
-from persistence.load_save_json import load_json
+from persistence.load_save_json import load_json, save_json
+import os
 
 # ========== Utility Functions ==========
 
@@ -107,3 +108,49 @@ Tips:
 * Use Ctrl+C to safely exit the application anytime.
 """)
     pause() 
+
+# ========== Advanced Features Menu ==========
+
+def advanced_features_menu():
+    """Main advanced features menu for budgets, goals, recurring txns, etc."""
+    user = get_current_user()
+    if not user:
+        print("Please log in first.")
+        return
+
+    user_id = user["user_id"]
+
+    # Ensure all data files exist
+    for file in [TRANSACTION_FILE, BUDGET_FILE, GOALS_FILE, RECURRING_FILE]:
+        if not os.path.exists(file):
+            print(f"{file} missing — creating a new one.")
+            save_json({}, file if "transactions" not in file else [])
+
+    while True:
+        print_header("ADVANCED FEATURES")
+        print("1. Set Budget Limit")
+        print("2. Check Budget Limits")
+        print("3. Set Goal")
+        print("4. View Goals Progress")
+        print("5. Process Recurring Transactions")
+        print("6. Calculate Financial Health Score")
+        print("7. Back to Main Menu")
+        choice = input("Choose an option: ").strip()
+
+        if choice == "1":
+            prompt_set_budget(user_id)
+        elif choice == "2":
+            prompt_check_budget(user_id)
+        elif choice == "3":
+            prompt_set_goal(user_id)
+        elif choice == "4":
+            prompt_view_goals(user_id)
+        elif choice == "5":
+            prompt_process_recurring(user_id)
+        elif choice == "6":
+            prompt_calculate_health(user_id)
+        elif choice == "7":
+            break
+        else:
+            print("Invalid choice, try again.")
+        pause()
