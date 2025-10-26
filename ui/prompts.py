@@ -323,3 +323,163 @@ def prompt_search_transactions():
     except Exception as e:
         print(f"Error during search: {e}")
 
+def prompt_dashboard_summary():
+    """Display the monthly dashboard summary in ASCII format (no colors)."""
+    user = get_current_user()
+    all_transactions = load_json(TRANSACTIONS_FILE)
+    user_transactions = [t for t in all_transactions if t["user_id"] == user["user_id"]]
+
+    if not user_transactions:
+        print("\nNo transactions found for this user.\n")
+        return
+
+    summary = generate_dashboard_summary(user_transactions)
+    name = user["name"]
+    period = summary["period"]
+
+    print("\n" + "=" * 60)
+    print("            PERSONAL FINANCE MANAGER v1.0")
+    print("=" * 60)
+    print(f"User: {name}")
+    print(f"Period: {period}")
+    print("-" * 60)
+    print(f"{'Total Income:':<25} ${summary['total_income']:,.2f}")
+    print(f"{'Total Expenses:':<25} ${summary['total_expenses']:,.2f}")
+    print(f"{'Net Savings:':<25} ${summary['net_savings']:,.2f}")
+    print("-" * 60)
+    print(f"{'Current Balance:':<25} ${summary['current_balance']:,.2f}")
+    print("=" * 60)
+    print("\nTop Spending Categories:")
+
+    if summary["top_categories"]:
+        for i, cat in enumerate(summary["top_categories"], start=1):
+            print(f"{i}. {cat['category']:<15} ${cat['amount']:>8,.2f}   ({cat['percent']:>5.1f}%)")
+    else:
+        print("No expense transactions for this month.")
+    print()
+
+
+def prompt_monthly_report():
+    """Prompt user for month and year to generate monthly report."""
+    print("\n=== Monthly Report ===")
+    print("-" * 40)
+
+    try:
+        user = get_current_user()
+        if not user:
+            print("You must be logged in to view reports.")
+            return
+
+        user_id = user["user_id"]
+
+        # Load all transactions and filter by current user
+        all_transactions = load_json(TRANSACTIONS_FILE)
+        user_transactions = [t for t in all_transactions if t.get("user_id") == user_id]
+
+        if not user_transactions:
+            print("No transactions available to generate a report.")
+            return
+
+        # Generate the monthly report
+        monthly_summary = generate_monthly_report(user_transactions)
+
+        # Display formatted report
+        print(f"\n{'Month':<10} {'Income':>12} {'Expense':>12} {'Balance':>12}")
+        print("-" * 50)
+
+        total_income = total_expense = 0
+
+        for month, data in sorted(monthly_summary.items()):
+            income = data.get("income", 0)
+            expense = data.get("expense", 0)
+            balance = income - expense
+            total_income += income
+            total_expense += expense
+
+            print(f"{month:<10} {income:>12.2f} {expense:>12.2f} {balance:>12.2f}")
+
+        print("-" * 50)
+        print(f"{'TOTAL':<10} {total_income:>12.2f} {total_expense:>12.2f} {(total_income - total_expense):>12.2f}")
+        print("-" * 50)
+
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+
+def prompt_category_breakdown():
+    """Display spending or income breakdown by category."""
+    print("\nCategory Breakdown")
+    print("-" * 40)
+
+    try:
+        user = get_current_user()
+        if not user:
+            print("You must be logged in to view reports.")
+            return
+
+        user_id = user["user_id"]
+        all_transactions = load_json(TRANSACTIONS_FILE)
+        user_transactions = [t for t in all_transactions if t.get("user_id") == user_id]
+
+        if not user_transactions:
+            print("No transactions available to generate report.")
+            return
+
+        breakdown = generate_category_breakdown(user_transactions)
+
+        if not breakdown:
+            print(f"No expenses transactions found to analyze.")
+            return
+
+        print(f"\nExpenses Breakdown by Category:")
+        print(f"{'Category':<20} {'Amount (EGP)':>15}")
+        print("-" * 40)
+
+        total = 0
+        for category, amount in sorted(breakdown.items(), key=lambda x: x[1], reverse=True):
+            print(f"{category:<20} {amount:>15.2f}")
+            total += amount
+
+        print("-" * 40)
+        print(f"{'TOTAL':<20} {total:>15.2f}")
+        print("-" * 40)
+
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+
+def prompt_spending_trends():
+    """Display month-to-month spending changes for the current user."""
+    print("\nSpending Trends Report")
+    print("-" * 55)
+
+    try:
+        user = get_current_user()
+        if not user:
+            print("You must be logged in to view spending trends.")
+            return
+
+        user_id = user["user_id"]
+        all_transactions = load_json(TRANSACTIONS_FILE)
+        user_transactions = [t for t in all_transactions if t.get("user_id") == user_id]
+
+        if not user_transactions:
+            print("No transactions available to analyze trends.")
+            return
+
+        # Generate the monthly spending trends
+        trends = generate_spending_trends(user_transactions)
+
+        if not trends:
+            print("Not enough monthly data to determine trends.")
+            return
+
+        print(f"{'From → To':<20} {'Change (EGP)':>15} {'% Change':>12} {'Trend':>8}")
+        print("-" * 55)
+
+        for t in trends:
+            arrow = "⬆️" if t["change"] > 0 else ("⬇️" if t["change"] < 0 else "➡️")
+            print(f"{t['from']} → {t['to']:<10} {t['change']:>12.2f} {t['percent_change']:>11.2f}% {arrow:>6}")
+
+        print("-" * 55)
+
+    except Exception as e:
+        print(f"Unexpected error: {e}")
