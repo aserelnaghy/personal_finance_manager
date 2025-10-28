@@ -1,5 +1,3 @@
-import os
-import datetime
 from utils.ids import generate_transaction_id
 from utils.date_utils import get_today_str, parse_date
 from persistence.load_save_json import load_json, save_json
@@ -60,8 +58,7 @@ def view_transaction(user_only=True):
         print("No Transactions found.")
         return []
     
-    for txn in user_txns:
-        print(f"[ {txn['transaction_id'][:10]} | {txn['date']} | {txn['type'].capitalize()} | {txn['category']} | {txn['amount']} EGP ]")
+
     return user_txns
 
 

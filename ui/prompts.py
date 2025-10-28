@@ -10,7 +10,6 @@ from features.budgets import set_budget_limit, check_budget_limits
 from features.goals import set_goal, check_goals_progress
 from features.financial_health import calculate_financial_health
 from features.recurring_processor import process_recurring_transactions
-from ui.input_validators import *
 from utils.date_utils import get_today_str, parse_date
 from config import TRANSACTIONS_FILE, BUDGET_FILE, GOALS_FILE, RECURRING_FILE
 from getpass import getpass
@@ -57,44 +56,54 @@ def prompt_logout() -> None:
 
 
 def prompt_add_transaction() -> Optional[dict]:
-    """Prompt user to add a transaction."""
+    """Prompt user to add a transaction with input validation and re-prompting."""
     print("\n=== Add Transaction ===")
-    
+
     try:
-        type = input("Type (income/expense): ").strip().lower()
-        if type not in ("income", "expense"):
-            raise ValueError("Type must be 'income' or 'expense'.")
-    except ValueError as e:
-        print(f"Error: {e}")
+        # --- Transaction Type ---
+        while True:
+            txn_type = input("Type (income/expense): ").strip().lower()
+            if txn_type in ("income", "expense"):
+                break
+            print("Invalid input. Type must be 'income' or 'expense'. Please try again.")
+
+        # --- Amount ---
+        while True:
+            amount_input = input("Amount: ").strip()
+            try:
+                amount = float(amount_input)
+                if amount <= 0:
+                    print("Amount must be greater than zero. Try again.")
+                    continue
+                break
+            except ValueError:
+                print("Invalid amount. Please enter a numeric value.")
+
+        # --- Category ---
+        while True:
+            category = input("Category: ").strip()
+            if category:
+                break
+            print("Category cannot be empty. Please try again.")
+
+        # --- Description ---
+        description = input("Description: ").strip() or "No description provided."
+
+        # --- Payment Method ---
+        while True:
+            payment_method = input("Payment Method: ").strip()
+            if payment_method:
+                break
+            print("Payment method cannot be empty. Please try again.")
+
+        # --- Call backend to add transaction ---
+        transaction = add_transaction(txn_type, amount, category, description, payment_method)
+        return transaction
+
+    except Exception as e:
+        print(f"Error adding transaction: {e}")
         return None
 
-    amount = input("Amount: ").strip()
-    try:
-        amount = float(amount)
-        if amount <= 0:
-            print("Amount must be greater than zero.")
-            return None
-    except ValueError:
-            print("Invalid amount. Please enter a numeric value.")
-            return None
-
-    category = input("Category: ").strip()
-    if not category:
-        print("Category cannot be empty.")
-        return None
-            
-    description = input("Description: ").strip()
-    if not description:
-        description = "No description provided."
-
-    payment_method = input("Payment Method: ").strip()
-    if not payment_method:
-        print("Payment method cannot be empty.")
-        return None
-
-    transaction = add_transaction(type, float(amount), category, description, payment_method)
-    print(f"Transaction added : {transaction}")
-    return transaction
 
 
 def prompt_view_transaction() -> None:
@@ -147,35 +156,42 @@ def prompt_edit_transactions() -> Optional[dict]:
             print(f"  ID: {txn['transaction_id']} | {txn['type']} | {txn['category']} | {txn['amount']}")
 
         # --- Proceed with editing ---
-        transaction_id = input("\nEnter the Transaction ID to edit: ").strip()
-        if not transaction_id:
-            print("Transaction ID cannot be empty.")
-            return None
+        while True:
+            transaction_id = input("\nEnter the Transaction ID to edit: ").strip()
+            if not transaction_id:
+                print("Transaction ID cannot be empty.")
+                continue
 
-        # Validate that the transaction exists for this user
-        if not any(txn["transaction_id"] == transaction_id for txn in user_transactions):
-            print("Transaction ID not found or does not belong to you.")
-            return None
+            # Validate that the transaction exists for this user
+            if not any(txn["transaction_id"] == transaction_id for txn in user_transactions):
+                print("Transaction ID not found or does not belong to you.")
+                continue
+            break
 
         print("Leave a field blank if you do NOT want to change it.\n")
 
         # Prompt for possible updates
-        new_type = input("New Type (income/expense): ").strip().lower()
-        if new_type and new_type not in ("income", "expense"):
-            print("Invalid type. Please enter 'income' or 'expense'.")
-            return None
+        while True:
+            new_type = input("New Type (income/expense): ").strip().lower()
+            if new_type and new_type not in ("income", "expense"):
+                print("Invalid type. Please enter 'income' or 'expense'.")
+                continue
+            break
 
-        new_amount_str = input("New Amount: ").strip()
-        new_amount = None
-        if new_amount_str:
+        
+        while True:
+            new_amount_str = input("New Amount: ").strip()
+            new_amount = None
+            if not new_amount_str:
+                break
             try:
                 new_amount = float(new_amount_str)
                 if new_amount <= 0:
-                    print("Amount must be greater than zero.")
-                    return None
+                    print("Amount must be greater than zero. Try again.")
+                    continue
+                break
             except ValueError:
                 print("Invalid amount. Please enter a numeric value.")
-                return None
 
         new_category = input("New Category: ").strip() or None
         new_description = input("New Description: ").strip() or None
@@ -191,7 +207,6 @@ def prompt_edit_transactions() -> Optional[dict]:
             payment_method=new_payment_method
         )
 
-        print(f"Transaction {transaction_id} updated successfully.")
         return {
             "transaction_id": transaction_id,
             "type": new_type,
@@ -227,24 +242,28 @@ def prompt_delete_transactions() -> Optional[str]:
             print(f"  ID: {txn['transaction_id']} | {txn['type']} | {txn['category']} | {txn['amount']}")
 
         # --- Ask for transaction ID ---
-        transaction_id = input("\nEnter the Transaction ID to delete: ").strip()
-        if not transaction_id:
-            print("Transaction ID cannot be empty.")
-            return None
+        while True:
+            transaction_id = input("\nEnter the Transaction ID to delete: ").strip()
+            if not transaction_id:
+                print("Transaction ID cannot be empty.")
+                continue
 
-        # Validate that the transaction exists for this user
-        if not any(txn["transaction_id"] == transaction_id for txn in user_transactions):
-            print("Transaction ID not found or does not belong to you.")
-            return None
+            # Validate that the transaction exists for this user
+            if not any(txn["transaction_id"] == transaction_id for txn in user_transactions):
+                print("Transaction ID not found or does not belong to you.")
+                continue
+            break
 
         # Ask for confirmation
-        confirm_choice = input(f"Are you sure you want to delete transaction {transaction_id}? (y/n): ").strip().lower()
-        if confirm_choice not in ("y", "n"):
-            print("Invalid choice. Please enter 'y' or 'n'.")
-            return None
-        if confirm_choice == "n":
-            print("Deletion cancelled by user.")
-            return None
+        while True:
+            confirm_choice = input(f"Are you sure you want to delete transaction {transaction_id}? (y/n): ").strip().lower()
+            if confirm_choice not in ("y", "n"):
+                print("Invalid choice. Please enter 'y' or 'n'.")
+                continue
+            if confirm_choice == "n":
+                print("Deletion cancelled by user.")
+                return None
+            break
 
         # Call backend logic (no second confirmation needed)
         delete_transaction(transaction_id, confirm=False)
@@ -293,58 +312,77 @@ def prompt_search_transactions():
         descending = False
 
         # Ask which filters to apply
-        filters_chosen = input(
-            "Enter the numbers of the filters you want to apply (comma-separated, e.g. 1,3,5): "
-        ).strip()
+        while True:
+            filters_chosen = input(
+                "Enter the numbers of the filters you want to apply (comma-separated, e.g. 1,3,5): "
+            ).strip()
 
-        valid_choices = {"1", "2", "3", "4", "5", "6"}
-        selected_filters = {f.strip() for f in filters_chosen.split(",") if f.strip()}
+            valid_choices = {"1", "2", "3", "4", "5", "6"}
+            selected_filters = {f.strip() for f in filters_chosen.split(",") if f.strip()}
 
-        # Validate input
-        if not selected_filters.issubset(valid_choices):
-            print("Invalid selection. Please enter numbers between 1 and 6.")
-            return
+            if not selected_filters.issubset(valid_choices):
+                print("Invalid selection. Please enter numbers between 1 and 6.")
+                continue
+            break
 
-        if "1" in selected_filters:  # Date range
-            start_date = input("Start date (YYYY-MM-DD) or leave blank: ").strip() or None
-            end_date = input("End date (YYYY-MM-DD) or leave blank: ").strip() or None
+        # --- Date Range ---
+        if "1" in selected_filters:
+            while True:
+                start_date = input("Start date (YYYY-MM-DD) or leave blank: ").strip() or None
+                end_date = input("End date (YYYY-MM-DD) or leave blank: ").strip() or None
 
-            # Quick validation before backend
-            for label, date_str in [("Start", start_date), ("End", end_date)]:
-                if date_str:
-                    try:
-                        parse_date(date_str)
-                    except ValueError:
-                        print(f"{label} date must be in YYYY-MM-DD format.")
-                        return
+                invalid_input = False
+                for label, date_str in [("Start", start_date), ("End", end_date)]:
+                    if date_str:
+                        try:
+                            parse_date(date_str)
+                        except ValueError:
+                            invalid_input = True
+                            break # break out of for-loop stay in while-loop
+                if invalid_input:
+                    print("Invalid date format. Please use YYYY-MM-DD. Try again.")
+                    continue
+                break # break out of while-loop (both are valid or blank)
 
-        if "2" in selected_filters:  # Category
+        # --- Category ---
+        if "2" in selected_filters:
             category = input("Enter category to filter by: ").strip() or None
 
-        if "3" in selected_filters:  # Type
-            txn_type = input("Enter transaction type (income/expense): ").strip().lower()
-            if txn_type not in ("income", "expense"):
-                print("Invalid type. Must be 'income' or 'expense'.")
-                return
+        # --- Type ---
+        if "3" in selected_filters:
+            while True:
+                txn_type = input("Enter transaction type (income/expense): ").strip().lower()
+                if txn_type not in ("income", "expense"):
+                    print("Invalid type. Must be 'income' or 'expense'. Try again.")
+                    continue
+                break
 
-        if "4" in selected_filters:  # Amount range
-            try:
-                min_amount_input = input("Minimum amount (or leave blank): ").strip()
-                max_amount_input = input("Maximum amount (or leave blank): ").strip()
-                min_amount = float(min_amount_input) if min_amount_input else None
-                max_amount = float(max_amount_input) if max_amount_input else None
-            except ValueError:
-                print("Amounts must be numeric.")
-                return
+        # --- Amount Range ---
+        if "4" in selected_filters:
+            while True:
+                try:
+                    min_amount_input = input("Minimum amount (or leave blank): ").strip()
+                    max_amount_input = input("Maximum amount (or leave blank): ").strip()
+                    min_amount = float(min_amount_input) if min_amount_input else None
+                    max_amount = float(max_amount_input) if max_amount_input else None
+                    break
+                except ValueError:
+                    print("Amounts must be numeric. Try again.")
 
-        if "5" in selected_filters:  # Sorting
-            print("\nSort options: date | amount | category")
-            sort_by = input("Sort by: ").strip().lower()
-            if sort_by not in ("date", "amount", "category", ""):
-                print("Invalid sort field.")
-                return
-            order = input("Descending order? (y/n): ").strip().lower()
-            descending = order == "y"
+        # --- Sorting ---
+        if "5" in selected_filters:
+            while True:
+                print("\nSort options: date | amount | category")
+                sort_by = input("Sort by: ").strip().lower()
+                if sort_by not in ("date", "amount", "category", ""):
+                    print("Invalid sort field. Try again.")
+                    continue
+                order = input("Descending order? (y/n): ").strip().lower()
+                if order not in ("y", "n"):
+                    print("Invalid input. Please enter 'y' or 'n'.")
+                    continue
+                descending = order == "y"
+                break
 
         # --- Fetch results ---
         transactions = search_transactions(

@@ -79,13 +79,3 @@ def days_between(start_date: str, end_date: str) -> int:
     start = parse_date(start_date)
     end = parse_date(end_date)
     return (end - start).days
-
-
-# if __name__ == "__main__":
-#     print(f"today : {get_today_str()}")
-#     parsed_date = parse_date("2023-10-01")
-#     print(f"Parsed date: {parsed_date}")
-#     formatted_date = format_date(parsed_date)
-#     print(f"Formatted date: {formatted_date}")
-#     delta_days = days_between("2023-10-01", "2023-10-15")
-#     print(f"Days between: {delta_days}")

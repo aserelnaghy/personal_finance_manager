@@ -56,19 +56,6 @@ def generate_dashboard_summary(transactions):
 
     return summary
 
-# def generate_monthly_report(transactions, month, year):
-    # monthly_transactions = [
-        # t for t in transactions if t["date"].month == month and t["date"].year == year
-    # ]
-    # report = {
-        # "month": month,
-        # "year": year,
-        # "transactions": monthly_transactions,
-        # "summary": generate_dashboard_summary(monthly_transactions),
-    # }
-    # return report
-
-
 def generate_monthly_report(transactions):
     monthly_summary = defaultdict(lambda: {"income": 0, "expense": 0})
     for t in transactions:
@@ -99,16 +86,3 @@ def generate_spending_trends(transactions):
             "percent_change": round(percent_change, 2)
         })
     return trends
-
-# transactions = load_json(TRANSACTIONS_FILE)
-# summary = generate_dashboard_summary(transactions)
-# print("Dashboard Summary:", summary)
-
-# print("\nMonthly Report:")
-# print(generate_monthly_report(transactions))
-
-# print("\nCategory Breakdown:")
-# print(generate_category_breakdown(transactions))
-
-# print("\nSpending Trends:")
-# print(generate_spending_trends(transactions))

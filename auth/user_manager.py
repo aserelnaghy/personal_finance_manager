@@ -1,6 +1,4 @@
 import os, json
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import hashlib
 from config import DEFAULT_CURRENCY, USERS_FILE, BASE_DIR
 from typing import Dict, Any
