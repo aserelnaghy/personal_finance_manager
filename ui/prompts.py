@@ -13,19 +13,41 @@ from features.recurring_processor import process_recurring_transactions
 from utils.date_utils import get_today_str, parse_date
 from config import TRANSACTIONS_FILE, BUDGET_FILE, GOALS_FILE, RECURRING_FILE
 from getpass import getpass
+import re
 
 def prompt_register() -> bool:
     """Prompt user for registration details."""
     print("\n=== User Registration ===")
     
-    username = input("Enter username: ").strip()
-    pin = getpass("Enter PIN: ").strip()
-    confirm_pin = getpass("Confirm PIN: ").strip()
+    while True:
+        username = input("Enter username: ").strip()
 
-    if pin != confirm_pin:
-        print("Error: PINs do not match.")
-        return False
-    
+        # Username validation: only letters, digits, and underscores
+        if not re.match(r"^[A-Za-z0-9_]+$", username):
+            print("Error: Username can only contain letters, numbers, and underscores (_).")
+            continue
+
+        if len(username) < 3:
+            print("Error: Username must be at least 3 characters long.")
+            continue
+
+        break
+
+    while True:
+        pin = getpass("Enter 4-digit PIN: ").strip()
+
+        # Validate PIN format
+        if not pin.isdigit() or len(pin) != 4:
+            print("Error: PIN must be exactly 4 digits (numbers only). Try again.")
+            continue
+
+        confirm_pin = getpass("Confirm PIN: ").strip()
+        if pin != confirm_pin:
+            print("Error: PINs do not match. Try again.")
+            continue
+        
+        break  # Both checks passed
+
     try:
         user = create_user(username, pin)
         print(f"User '{user['name']}' registered successfully!")
