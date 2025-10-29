@@ -5,6 +5,7 @@ from typing import Dict, Any
 from persistence.load_save_json import load_json, save_json
 from utils.errors import UserAlreadyExistsError, UserNotFoundError, AuthenticationError
 from utils.ids import generate_user_id
+from reports.reports_manager import create_backup
 
 CURRENT_USER_FILE = os.path.join(BASE_DIR, "data", "current_user.json")
 
@@ -69,5 +70,6 @@ def login_user(name: str, pin: str) -> dict:
 
 def logout_user() -> None:
     """Clear current session."""
+    create_backup()
     if os.path.exists(CURRENT_USER_FILE):
         os.remove(CURRENT_USER_FILE)

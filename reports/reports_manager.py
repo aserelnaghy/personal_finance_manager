@@ -1,7 +1,8 @@
 
 from collections import defaultdict
 from persistence.load_save_json import load_json
-from config import TRANSACTIONS_FILE
+from config import TRANSACTIONS_FILE, BACKUP_DIR, DATA_DIR
+import shutil
 from datetime import datetime 
 
 def generate_dashboard_summary(transactions):
@@ -86,3 +87,40 @@ def generate_spending_trends(transactions):
             "percent_change": round(percent_change, 2)
         })
     return trends
+
+def create_backup() -> None:
+    """
+    Creates a timestamped backup of users.json and transactions.json.
+    Stored inside the 'backups' directory.
+    """
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    
+    for filename in ["users.json", "transactions.json"]:
+        source = DATA_DIR / filename
+        if source.exists():
+            backup_file = BACKUP_DIR / f"{filename.replace('.json', '')}_backup_{timestamp}.json"
+            shutil.copy2(source, backup_file)
+            print(f"Backup created: {backup_file.name}")
+        else:
+            print(f"Warning: {filename} not found, skipping...")
+
+def restore_backup(filename: str) -> None:
+    """
+    Restores a backup file to the data directory.
+    filename should be one of the files inside 'backups'.
+    """
+    source = BACKUP_DIR / filename
+    if not source.exists():
+        print("Backup file not found.")
+        return
+
+    if "users" in filename:
+        destination = DATA_DIR / "users.json"
+    elif "transactions" in filename:
+        destination = DATA_DIR / "transactions.json"
+    else:
+        print("Invalid backup file name.")
+        return
+
+    shutil.copy2(source, destination)
+    print(f"Restored {destination.name} from {filename}.")
