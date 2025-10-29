@@ -56,7 +56,7 @@ def prompt_logout() -> None:
 
 
 def prompt_add_transaction() -> Optional[dict]:
-    """Prompt user to add a transaction with input validation and re-prompting."""
+    """Prompt user to add a transaction with validation and recurring option."""
     print("\n=== Add Transaction ===")
 
     try:
@@ -65,7 +65,7 @@ def prompt_add_transaction() -> Optional[dict]:
             txn_type = input("Type (income/expense): ").strip().lower()
             if txn_type in ("income", "expense"):
                 break
-            print("Invalid input. Type must be 'income' or 'expense'. Please try again.")
+            print("Invalid input. Please enter 'income' or 'expense'.")
 
         # --- Amount ---
         while True:
@@ -73,36 +73,48 @@ def prompt_add_transaction() -> Optional[dict]:
             try:
                 amount = float(amount_input)
                 if amount <= 0:
-                    print("Amount must be greater than zero. Try again.")
+                    print("Amount must be greater than zero.")
                     continue
                 break
             except ValueError:
-                print("Invalid amount. Please enter a numeric value.")
+                print("Invalid amount. Enter a numeric value.")
 
         # --- Category ---
-        while True:
-            category = input("Category: ").strip()
-            if category:
-                break
-            print("Category cannot be empty. Please try again.")
+        category = input("Category: ").strip() or "Uncategorized"
 
         # --- Description ---
         description = input("Description: ").strip() or "No description provided."
 
         # --- Payment Method ---
-        while True:
-            payment_method = input("Payment Method: ").strip()
-            if payment_method:
-                break
-            print("Payment method cannot be empty. Please try again.")
+        payment_method = input("Payment Method: ").strip() or "Cash"
 
-        # --- Call backend to add transaction ---
-        transaction = add_transaction(txn_type, amount, category, description, payment_method)
+        # --- Recurring Transaction Option ---
+        is_recurring = False
+        recurrence_interval = None
+        while True:
+            recurring_choice = input("Is this a recurring transaction? (yes/no): ").strip().lower()
+            if recurring_choice in ("yes", "no"):
+                is_recurring = recurring_choice == "yes"
+                break
+            print("Please enter 'yes' or 'no'.")
+
+        if is_recurring:
+            while True:
+                recurrence_interval = input("Recurrence interval (daily/weekly/monthly): ").strip().lower()
+                if recurrence_interval in ("daily", "weekly", "monthly"):
+                    break
+                print("Invalid input. Choose 'daily', 'weekly', or 'monthly'.")
+
+        transaction = add_transaction(
+            txn_type, amount, category, description, payment_method,
+            is_recurring, recurrence_interval
+        )
         return transaction
 
     except Exception as e:
         print(f"Error adding transaction: {e}")
         return None
+
 
 
 
@@ -630,15 +642,16 @@ def prompt_view_goals(user_id):
             f"Target: {g['target_amount']} | Remaining: {g['remaining']:.2f}"
         )
 
-def prompt_process_recurring(user_id):
-    
-    transactions = load_json(TRANSACTIONS_FILE)
+# def prompt_process_recurring():
+#     """Manually trigger processing of due recurring transactions."""
+#     print("\n=== Process Recurring Transactions ===")
+#     print("----------------------------------------")
 
-    print("\nProcess Recurring Transactions")
-    print("-" * 40)
+#     try:
+#         process_recurring_transactions()
+#     except Exception as e:
+#         print(f"Error while processing recurring transactions: {e}")
 
-    updated_txns = process_recurring_transactions(user_id, transactions)
-    save_json(updated_txns, TRANSACTIONS_FILE)
 
 def prompt_calculate_health(user_id):
     transactions = load_json(TRANSACTIONS_FILE)

@@ -125,9 +125,8 @@ def advanced_features_menu():
         print("2. Check Budget Limits")
         print("3. Set Goal")
         print("4. View Goals Progress")
-        print("5. Process Recurring Transactions")
-        print("6. Calculate Financial Health Score")
-        print("7. Back to Main Menu")
+        print("5. Calculate Financial Health Score")
+        print("6. Back to Main Menu")
         choice = input("Choose an option: ").strip()
 
         if choice == "1":
@@ -139,10 +138,8 @@ def advanced_features_menu():
         elif choice == "4":
             prompt_view_goals(user_id)
         elif choice == "5":
-            prompt_process_recurring(user_id)
-        elif choice == "6":
             prompt_calculate_health(user_id)
-        elif choice == "7":
+        elif choice == "6":
             break
         else:
             print("Invalid choice, try again.")

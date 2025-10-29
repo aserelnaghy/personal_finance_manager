@@ -4,33 +4,40 @@ from persistence.load_save_json import load_json, save_json
 from auth.user_manager import get_current_user
 from utils.errors import InvalidTransactionError, UserNotFoundError
 from config import *
+from features.recurring_processor import process_recurring_transactions
 
-
-def add_transaction(type, amount, category, description, payment_method):
-    """ Add an income or expense transaction for the current user."""
+def add_transaction(txn_type, amount, category, description, payment_method, is_recurring=False, recurrence_interval=None):
+    """Add an income or expense transaction for the current user."""
     user = get_current_user()
 
     if not user:
         raise UserNotFoundError("No active user found. Please log in first.")
 
-    transaction = load_json(TRANSACTIONS_FILE)
+    transactions = load_json(TRANSACTIONS_FILE)
 
     new_transaction = {
         "transaction_id": generate_transaction_id(),
         "user_id": user["user_id"],
-        "type": type.lower(),
+        "type": txn_type.lower(),
         "amount": float(amount),
         "category": category,
         "date": get_today_str(),
         "description": description,
-        "payment_method": payment_method
+        "payment_method": payment_method,
+        "is_recurring": is_recurring,
+        "recurrence_interval": recurrence_interval if is_recurring else None
     }
 
-    transaction.append(new_transaction)
-    save_json(transaction, TRANSACTIONS_FILE)
+    transactions.append(new_transaction)
+    save_json(transactions, TRANSACTIONS_FILE)
+
+    # Process due recurring transactions automatically
+    process_recurring_transactions()
 
     print(f"Transaction added successfully: {new_transaction['transaction_id']}")
     return new_transaction
+
+
 
 
 def view_transaction(user_only=True):

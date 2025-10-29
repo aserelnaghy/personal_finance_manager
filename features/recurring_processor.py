@@ -1,86 +1,54 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 from persistence.load_save_json import load_json, save_json
-import os
+from auth.user_manager import get_current_user
+from utils.ids import generate_transaction_id
+from utils.date_utils import get_today_str
+from config import TRANSACTIONS_FILE
 
-def process_recurring_transactions(user_id, transactions):
-    """
-    Process due recurring transactions for a user.
-    If 'recurring.json' doesn't exist, create it automatically.
+def process_recurring_transactions():
+    """Check and add new instances of due recurring transactions."""
+    user = get_current_user()
+    if not user:
+        print("No active user. Please log in first.")
+        return
 
-    Args:
-        user_id (str): ID of the user to process.
-        transactions (list): Existing list of transactions.
+    transactions = load_json(TRANSACTIONS_FILE)
+    today = datetime.strptime(get_today_str(), "%Y-%m-%d")
 
-    Returns:
-        list: Updated list of transactions including new recurring ones.
-    """
-    try:
-        # --- 1. Ensure data directory exists ---
-        os.makedirs("data", exist_ok=True)
+    user_txns = [
+        t for t in transactions
+        if t["user_id"] == user["user_id"] and t.get("is_recurring")
+    ]
 
-        recurring_path = "data/recurring.json"
+    if not user_txns:
+        return  # silently skip if no recurring transactions
 
-        # --- 2. If recurring.json doesn't exist, create it empty ---
-        if not os.path.exists(recurring_path):
-            print("Recurring.json not found — creating a new one.")
-            save_json({}, recurring_path)  # start with empty dict
+    added_count = 0
+    for txn in user_txns:
+        try:
+            last_date = datetime.strptime(txn["date"], "%Y-%m-%d")
+            interval = txn.get("recurrence_interval")
 
-        # --- 3. Load recurring data safely ---
-        recurring_data = load_json(recurring_path)
-        if not isinstance(recurring_data, dict):
-            print("Recurring.json corrupted — resetting file.")
-            recurring_data = {}
-            save_json(recurring_data, recurring_path)
+            if interval == "daily":
+                next_due = last_date + timedelta(days=1)
+            elif interval == "weekly":
+                next_due = last_date + timedelta(weeks=1)
+            elif interval == "monthly":
+                next_due = last_date + timedelta(days=30)
+            else:
+                continue
 
-        # --- 4. Get user’s recurring list ---
-        recurring_list = recurring_data.get(user_id, [])
-        if not recurring_list:
-            print(f"No recurring transactions found for user {user_id}.")
-            return transactions
+            if today >= next_due:
+                new_txn = txn.copy()
+                new_txn["transaction_id"] = generate_transaction_id()
+                new_txn["date"] = get_today_str()
+                transactions.append(new_txn)
+                added_count += 1
 
-        # --- 5. Process due recurring transactions ---
-        today = datetime.now().strftime("%Y-%m-%d")
-        new_transactions = []
+        except Exception as e:
+            print(f"Error processing transaction {txn.get('transaction_id')}: {e}")
 
-        for r in recurring_list:
-            if r["next_date"] <= today:
-                # Schedule next trigger
-                next_date = (
-                    datetime.strptime(today, "%Y-%m-%d")
-                    + timedelta(days=r["interval_days"])
-                ).strftime("%Y-%m-%d")
-                r["next_date"] = next_date
-
-                # Create new transaction
-                txn = {
-                    "transaction_id": f"RC-{uuid4().hex[:6]}",
-                    "user_id": user_id,
-                    "type": r["type"],
-                    "amount": r["amount"],
-                    "category": r["category"],
-                    "date": today,
-                    "description": f"Recurring: {r['description']}",
-                    "payment_method": r["payment_method"],
-                }
-                new_transactions.append(txn)
-
-        # --- 6. Update recurring.json with new next_date values ---
-        recurring_data[user_id] = recurring_list
-        save_json(recurring_data, recurring_path)
-
-        # --- 7. Append new transactions ---
-        if new_transactions:
-            transactions.extend(new_transactions)
-            print(f"{len(new_transactions)} recurring transactions processed for {user_id}.")
-        else:
-            print(f"No due recurring transactions for {user_id} today.")
-
-        return transactions
-
-    except PermissionError:
-        print("Permission denied while accessing recurring.json.")
-        return transactions
-    except Exception as e:
-        print(f"Unexpected error while processing recurring transactions: {e}")
-        return transactions
+    if added_count > 0:
+        save_json(transactions, TRANSACTIONS_FILE)
+        print(f"{added_count} recurring transaction(s) added automatically.")
