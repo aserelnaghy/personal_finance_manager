@@ -50,7 +50,7 @@ def verify_user(name: str, pin: str) -> Dict[str, Any]:
 
 
 
-def get_current_user() -> dict | None:
+def get_current_user():
     """Returns the active user if logged in, else None."""
     if not os.path.exists(CURRENT_USER_FILE):
         return None
